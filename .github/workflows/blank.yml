@@ -28,7 +28,7 @@ jobs:
           echo "executing pwd"
           pwd
           echo "excuting ls"
-          pwd
+          ls
         
     
 
@@ -41,4 +41,4 @@ jobs:
           echo "excuting pwd"
           pwd
           echo "excuting ls"
-          pwd
+          ls
