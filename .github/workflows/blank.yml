@@ -41,3 +41,4 @@ jobs:
           pwd
           echo "excuting ls"
           ls
+          tree
