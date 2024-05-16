@@ -43,5 +43,5 @@ jobs:
           ls
           tree
           echo "going one directory back----------------------------------------"
-          cd ..
+          cd ../../
           tree
