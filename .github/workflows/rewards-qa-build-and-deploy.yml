@@ -174,7 +174,7 @@ jobs:
 
      - name: Search and replace values
        run: |
-        cd devops-cd
+        # cd devops-cd
         mkdir -p build/${{ env.APP_NAME }}
         cp application/* build/${{ env.APP_NAME }}
         cp ../deployment/values/${{ env.APP_NAME }}/qa/helm/* build/${{ env.APP_NAME }}
