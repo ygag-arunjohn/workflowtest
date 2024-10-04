@@ -176,7 +176,6 @@ jobs:
        run: |
         # cd devops-cd
         mkdir -p build/${{ env.APP_NAME }}
-        cp ../deployment/values/${{ env.APP_NAME }}/qa/helm/* build/${{ env.APP_NAME }}
         cp ../deployment/values/${{ env.APP_NAME }}/qa/terraform/* build/${{ env.APP_NAME }}
         
         find ./ -type f -exec sed -i 's/\[ENVIRONMENT\]/qa/g' '{}' \;
