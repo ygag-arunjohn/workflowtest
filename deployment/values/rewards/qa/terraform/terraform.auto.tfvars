@@ -108,7 +108,7 @@ application_database_charts = [
 application_migration_charts = [
   # migration
   {
-    create_helm_release = true
+    create_helm_release = [MIGRATION_RUN]
 
     namespace        = "rewards-[JIRA_ID]"
     create_namespace = false
@@ -124,7 +124,7 @@ application_migration_charts = [
   },
   # collectstatic
   {
-    create_helm_release = true
+    create_helm_release = [COLLECTSTATIC_RUN]
 
     namespace        = "rewards-[JIRA_ID]"
     create_namespace = false
