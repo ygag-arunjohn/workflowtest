@@ -233,6 +233,7 @@ jobs:
           sed -i "s/\[APP_CRON_DEPLOY\]/false/g" *.auto.tfvars
         fi
          
+        pwd 
         cat terraform.auto.tfvars
          
 
