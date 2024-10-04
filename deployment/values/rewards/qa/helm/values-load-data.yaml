@@ -1,0 +1,64 @@
+namespace: 'rewards-[JIRA_ID]'
+
+app_name: 'rewards-[JIRA_ID]'
+
+job:
+  name: 'rewards-[JIRA_ID]-load-data-job'
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 30
+
+  serviceAccountName: ygag-rewards-vault
+  containers:
+    - name: 'load-data'
+      imagePullPolicy: 'Always'
+      image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/ygg/rewards/backend-app:[BUILD_TAG]'
+      command: '["sh", "-c", " /ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ; python2.7 manage.py load_unified_auth_users_initial_data >> /ygag/logs/app.out.load-data.log 2>&1"]'
+      memory:
+        requests: 1000Mi
+        limits: 1500Mi
+      cpu:
+        requests: 1000m
+        limits: 1500m
+      volumeMounts:
+        - mountPath: '/ygag/logs/'
+          name: 'ygag-rewards-[JIRA_ID]-qa-load-data-logs'
+        - name: rewards-app-env-volume
+          mountPath: "/vault/secrets"
+        - name: rewards-certs-msk-volume
+          mountPath: "/ygag/certs/msk"
+
+  volumes:
+    - name: 'ygag-rewards-[JIRA_ID]-qa-load-data-logs'
+      hostPath:
+        path: '/home/ec2-user/ygag-logs/ygag-rewards-[JIRA_ID]-qa/app'
+    - name: rewards-app-env-volume
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-envs"
+    - name: rewards-certs-msk-volume
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-certs-msk"
+
+  initContainers:
+    database:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/postgres:13.11'
+        cmd: 'pg_isready -p 5432'
+        host: 'rewards-[JIRA_ID]-database'
+        name: 'init-database'
+    redis:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/redis:6.2.4'
+        host: 'rewards-[JIRA_ID]-redis'
+        name: 'init-redis'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'database'
+  priorityClassName: 'qa-critical'
+  restartPolicy: 'Never'
+  terminationGracePeriodSeconds: 30

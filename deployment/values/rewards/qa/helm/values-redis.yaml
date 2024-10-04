@@ -1,0 +1,77 @@
+namespace: 'rewards-[JIRA_ID]'
+
+app_name: 'rewards-[JIRA_ID]'
+environment: 'qa'
+
+service:
+  name: 'rewards-[JIRA_ID]-redis'
+  default:
+    port: 6379
+    protocol: 'TCP'
+    targetPort: 6379
+
+enableHPA: false
+hpa:
+  name: 'rewards-[JIRA_ID]-redis-hpa'
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+enableKedaCron: true
+keda:
+  name: 'rewards-[JIRA_ID]-redis-keda'
+  minReplicas: 0
+  desiredReplicas: 1
+  maxReplicas: 1
+  start: "0 7 * * 1-5"
+  end: "0 22 * * 1-5"
+  cpu: 80
+
+pdb:
+  name: 'rewards-[JIRA_ID]-redis-pdb'
+  minAvailable: 100%
+
+deployment:
+  name: 'rewards-[JIRA_ID]-redis-deployment'
+  replicas: 1
+  maxSurge: 100%
+  maxUnavailable: 0
+
+  containers:
+    default:
+      name: 'redis'
+      imagePullPolicy: 'Always'
+      image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/redis:6.2.4'
+      command: '[]'
+      # TODO why we need this ?
+      args: '["/ygag/config/redis.conf"]'
+      port: 6379
+      memory:
+        requests: 20Mi
+        limits: 26Mi
+      cpu:
+        requests: 10m
+        limits: 13m
+
+  volumes:
+    configMap:
+      - name: 'ygag-rewards-[JIRA_ID]-redis-config'
+        mountPath: '/ygag/config/'
+        configMap:
+          name: 'rewards-[JIRA_ID]-redis-configmap'
+          items:
+            key: 'redis.conf'
+            path: 'redis.conf'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'database'
+  priorityClassName: 'qa-critical'
+  terminationGracePeriodSeconds: 60
+
+configMap:
+  - name: 'rewards-[JIRA_ID]-redis-configmap'
+    data:
+      redis.conf: |-
+        databases 32
+        maxmemory-policy volatile-lru

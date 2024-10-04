@@ -1,0 +1,111 @@
+namespace: 'rewards-[JIRA_ID]'
+
+app_name: 'rewards-[JIRA_ID]'
+environment: 'qa'
+
+service:
+  name: 'rewards-[JIRA_ID]-worker'
+  default:
+    port: 8000
+    protocol: 'TCP'
+    targetPort: 8000
+
+enableHPA: false
+hpa:
+  name: 'rewards-[JIRA_ID]-worker-hpa'
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+enableKedaCron: true
+keda:
+  name: 'rewards-[JIRA_ID]-worker-keda'
+  minReplicas: 0
+  desiredReplicas: 1
+  maxReplicas: 1
+  start: "0 7 * * 1-5"
+  end: "0 22 * * 1-5"
+  cpu: 80
+
+pdb:
+  name: 'rewards-[JIRA_ID]-worker-pdb'
+  minAvailable: 0%
+
+deployment:
+  name: 'rewards-[JIRA_ID]-worker-deployment'
+  replicas: 1
+  maxSurge: 100%
+  maxUnavailable: 0%
+  serviceAccountName: ygag-rewards-vault
+
+  containers:
+    default:
+      name: 'worker'
+      imagePullPolicy: 'Always'
+      image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/ygg/rewards/backend-app:[BUILD_TAG]'
+      command: '["/ygag/deployment/app/entrypoint.sh"]'
+      args: '["worker"]'
+      memory:
+        requests: 250Mi
+        limits: 325Mi
+      cpu:
+        requests: 135m
+      volumeMounts:
+        - mountPath: '/ygag/logs/'
+          name: 'ygag-rewards-[JIRA_ID]-qa-worker-logs'
+        - name: 'rewards-app-env-volume'
+          mountPath: "/vault/secrets"
+        - name: rewards-certs-msk-volume
+          mountPath: "/ygag/certs/msk"
+
+  volumes:
+    - name: 'ygag-rewards-[JIRA_ID]-qa-worker-logs'
+      hostPath:
+        path: '/home/ec2-user/ygag-logs/ygag-rewards-[JIRA_ID]-qa/worker'
+    - name: rewards-app-env-volume
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-envs"
+    - name: rewards-certs-msk-volume
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-certs-msk"
+
+  initContainers:
+    database:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/postgres:13.11'
+        cmd: 'pg_isready -p 5432'
+        host: 'rewards-[JIRA_ID]-database'
+        name: 'init-database'
+    redis:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/redis:6.2.4'
+        host: 'rewards-[JIRA_ID]-redis'
+        name: 'init-redis'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'default'
+
+  topologySpreadConstraints:
+    - maxSkew: 2
+      topologyKey: 'topology.kubernetes.io/zone'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: worker
+    - maxSkew: 2
+      topologyKey: 'kubernetes.io/hostname'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: worker
+
+  priorityClassName: 'qa-medium'
+  terminationGracePeriodSeconds: 60
+

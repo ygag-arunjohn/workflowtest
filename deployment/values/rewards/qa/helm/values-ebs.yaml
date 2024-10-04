@@ -1,0 +1,11 @@
+namespace: 'rewards-[JIRA_ID]'
+
+pvc:
+  - name: 'rewards-[JIRA_ID]-ebs-database'
+    accessModes:
+      - 'ReadWriteOnce'
+    resources:
+      requests:
+        storage: 1Gi
+    storageClassName: 'ebs-sc'
+

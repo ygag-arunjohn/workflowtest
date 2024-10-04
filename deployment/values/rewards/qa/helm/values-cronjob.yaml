@@ -1,0 +1,150 @@
+namespace: 'rewards-[JIRA_ID]'
+
+successfulJobsHistoryLimit: 0
+failedJobsHistoryLimit: 3
+
+template:
+  serviceAccountName: ygag-rewards-vault
+  containers:
+    - name: 'cron'
+      imagePullPolicy: 'Always'
+      image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/ygg/rewards/backend-app:[BUILD_TAG]'
+      memory:
+        requests: 256Mi
+        limits: 512Mi
+      cpu:
+        requests: 250m
+        limits: 500m
+      volumeMounts:
+        - mountPath: '/ygag/logs/'
+          name: 'ygag-rewards-[JIRA_ID]-qa-cron-logs'
+        - name: 'rewards-app-env-volume'
+          mountPath: "/vault/secrets"
+        - name: rewards-certs-msk-volume
+          mountPath: "/ygag/certs/msk"
+
+  volumes:
+    - name: 'ygag-rewards-[JIRA_ID]-qa-cron-logs'
+      hostPath:
+        path: '/home/ec2-user/ygag-logs/ygag-rewards-[JIRA_ID]-qa/cron'
+    - name: 'rewards-app-env-volume'
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-envs"
+    - name: rewards-certs-msk-volume
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "rewards-certs-msk"
+
+  initContainers:
+    database:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/postgres:13.11'
+        cmd: 'pg_isready -p 5432'
+        host: 'rewards-[JIRA_ID]-database'
+        name: 'init-database'
+    redis:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/redis:6.2.4'
+        host: 'rewards-[JIRA_ID]-redis'
+        name: 'init-redis'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'cron'
+
+  topologySpreadConstraints:
+    - maxSkew: 2
+      topologyKey: 'topology.kubernetes.io/zone'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: cron
+    - maxSkew: 2
+      topologyKey: 'kubernetes.io/hostname'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: cron
+
+  priorityClassName: 'qa-medium'
+  restartPolicy: 'OnFailure'
+  terminationGracePeriodSeconds: 120
+
+
+cronjobs:
+  - name: 'rewards-[JIRA_ID]-sync-exchange-rate'
+    schedule: '@hourly'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ; python2 /ygag/manage.py sync_exchange_rates >> /ygag/logs/cron.out.exchange_rates.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi
+
+  - name: 'rewards-[JIRA_ID]-sync-forex-currency'
+    schedule: '@hourly'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ;  python2 /ygag/manage.py sync_forex_currency_exchange_rates >> /ygag/logs/cron.out.forex_currency_exchange_rates.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi
+
+  - name: 'rewards-[JIRA_ID]-sync-brands-sand'
+    schedule: '0 9 * * *'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ;  python2 /ygag/manage.py sync_brands_sandbox >> /ygag/logs/cron.out.sync_brands_sandbox.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi
+
+  - name: 'rewards-[JIRA_ID]-sync-review'
+    schedule: '@daily'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ; python2 /ygag/manage.py sync_reviews >> /ygag/logs/cron.out.sync_reviews.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi
+
+  - name: 'rewards-[JIRA_ID]-send-signup-notifications-daily'
+    schedule: '*/5 * * * *'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ; python2 /ygag/manage.py send_signup_notifications daily >> /ygag/logs/cron.out.send_signup_notifications.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi
+
+  - name: 'rewards-[JIRA_ID]-send-signup-notifications-hourly'
+    schedule: '*/5 * * * *'
+    command: '["sh", "-c", "/ygag/deployment/app/env.sh ; source /etc/profile.d/application-env.sh ; python2 /ygag/manage.py send_signup_notifications hourly >> /ygag/logs/cron.out.send_signup_notifications.log 2>&1"]'
+    concurrencyPolicy: 'Replace'
+    startingDeadlineSeconds: 300
+    cpu:
+      requests: 1000m
+      limits: 1500m
+    memory:
+      requests: 1000Mi
+      limits: 1000Mi

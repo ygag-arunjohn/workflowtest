@@ -1,0 +1,116 @@
+namespace: 'rewards-[JIRA_ID]'
+
+app_name: 'rewards-[JIRA_ID]'
+environment: 'qa'
+
+service:
+  name: 'rewards-[JIRA_ID]-nginx'
+  default:
+    port: 80
+    protocol: 'TCP'
+    targetPort: 80
+  https:
+    port: 443
+    protocol: 'TCP'
+    targetPort: 80
+
+enableHPA: false
+hpa:
+  name: 'rewards-[JIRA_ID]-nginx-hpa'
+  minReplicas: 2
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+
+enableKedaCron: true
+keda:
+  name: 'rewards-[JIRA_ID]-nginx-keda'
+  minReplicas: 0
+  desiredReplicas: 2
+  maxReplicas: 2
+  start: "0 7 * * 1-5"
+  end: "0 22 * * 1-5"
+  cpu: 80
+
+pdb:
+  name: 'rewards-[JIRA_ID]-nginx-pdb'
+  minAvailable: 1
+
+deployment:
+  name: 'rewards-[JIRA_ID]-nginx-deployment'
+  replicas: 2
+  maxSurge: 100%
+  maxUnavailable: 50%
+
+  containers:
+    default:
+      name: 'nginx'
+      imagePullPolicy: 'Always'
+      image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/ygg/rewards/backend-nginx:[BUILD_TAG]'
+      command: '["/ygag/nginx/entrypoint.sh"]'
+      port: 80
+      memory:
+        requests: 20Mi
+        limits: 26Mi
+      cpu:
+        requests: 10m
+        limits: 13m
+      health:
+        path: '/nginx-health'
+        port: 80
+        scheme: 'HTTP'
+      startupProbe:
+        initialDelaySeconds: 3
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 5
+      readinessProbe:
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 3
+      livenessProbe:
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 4
+
+  volumes:
+    local:
+      - name: 'ygag-rewards-[JIRA_ID]-qa-nginx-logs'
+        mountPath: '/var/log/nginx/'
+        hostPath: '/home/ec2-user/ygag-logs/ygag-rewards-[JIRA_ID]-qa/nginx'
+
+  initContainers:
+    app:
+      - image: '420360167813.dkr.ecr.me-central-1.amazonaws.com/qa/k8s/busybox:latest'
+        host: 'rewards-[JIRA_ID]-app'
+        name: 'init-app'
+        port: 8000
+        healthPath: '/health'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'default'
+
+  topologySpreadConstraints:
+    - maxSkew: 2
+      topologyKey: 'topology.kubernetes.io/zone'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: nginx
+    - maxSkew: 2
+      topologyKey: 'kubernetes.io/hostname'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'rewards-[JIRA_ID]'
+          tier: nginx
+
+  priorityClassName: 'qa-medium'
+  terminationGracePeriodSeconds: 100
+
