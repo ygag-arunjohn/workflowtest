@@ -182,8 +182,10 @@ jobs:
         find ./ -type f -exec sed -i 's!\[COLLECTSTATIC_RUN\]!${{ env.COLLECTSTATIC_RUN }}!g' '{}' \;
         find ./ -type f -exec sed -i 's!\[MIGRATION_RUN\]!${{ env.MIGRATION_RUN }}!g' '{}' \; 
          
-         
+        ls 
         pwd 
+        cd build/${{ env.APP_NAME }} 
+         
         cat terraform.auto.tfvars
          
 
