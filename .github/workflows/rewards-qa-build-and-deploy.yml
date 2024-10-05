@@ -182,39 +182,6 @@ jobs:
         find ./ -type f -exec sed -i 's!\[COLLECTSTATIC_RUN\]!${{ env.COLLECTSTATIC_RUN }}!g' '{}' \;
         find ./ -type f -exec sed -i 's!\[MIGRATION_RUN\]!${{ env.MIGRATION_RUN }}!g' '{}' \; 
          
-        cd build/${{ env.APP_NAME }}/ > /dev/null
-
-        find ./ -type f -exec sed -i "s/\[JIRA_ID\]/${{needs.initialize.outputs.jira_id}}/g" {} \;
-
-        if [[ ${{ env.ACTION }} == "destroy" ]] ; then
-          sed -i "s/\[APP_DEPLOY\]/false/g" *.auto.tfvars
-        else
-          sed -i "s/\[APP_DEPLOY\]/true/g" *.auto.tfvars
-        fi
-
-        if [[ ${{ env.UNIT_TEST }} == "true" ]] ; then
-          sed -i "s/\[APP_UNIT_TEST_DEPLOY\]/true/g" *.auto.tfvars
-        else
-          sed -i "s/\[APP_UNIT_TEST_DEPLOY\]/false/g" *.auto.tfvars
-        fi
-
-        if [[ ${{ env.APP_DB_LB_DEPLOY }} == "true" ]] ; then
-          sed -i "s/\[APP_DB_LB_DEPLOY\]/true/g" *.auto.tfvars *.yaml
-        else
-          sed -i "s/\[APP_DB_LB_DEPLOY\]/false/g" *.auto.tfvars *.yaml
-        fi
-
-        if [[ ${{ env.QA_DEPLOY_ENV }} == "automation" ]] ; then
-          sed -i "s/\[QA_DEPLOY_ENV\]/automation/g" *.yaml
-        else
-          sed -i "s/\[QA_DEPLOY_ENV\]/qa/g" *.yaml
-        fi
-
-        if [[ ${{ env.APP_CRON_DEPLOY }} == "true" ]] ; then
-          sed -i "s/\[APP_CRON_DEPLOY\]/true/g" *.auto.tfvars
-        else
-          sed -i "s/\[APP_CRON_DEPLOY\]/false/g" *.auto.tfvars
-        fi
          
         pwd 
         cat terraform.auto.tfvars
