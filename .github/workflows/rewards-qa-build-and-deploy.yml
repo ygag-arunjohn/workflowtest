@@ -174,26 +174,10 @@ jobs:
 
      - name: Search and replace values
        run: |
-        # cd devops-cd
         mkdir -p build/${{ env.APP_NAME }}
         cp ../deployment/values/${{ env.APP_NAME }}/qa/terraform/* build/${{ env.APP_NAME }}
         
-        find ./ -type f -exec sed -i 's/\[ENVIRONMENT\]/qa/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[KUBERNETES_TOKEN\]/${{ env.KUBERNETES_TOKEN }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[VAULT_TOKEN\]/${{ secrets.VAULT_TOKEN }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[BUILD_TAG\]/${{ env.IMAGE_TAG }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[NGINX_BUILD_TAG\]/${{ env.IMAGE_TAG }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[IMAGE_PULL_SECRET\]/${{ env.IMAGE_PULL_SECRET }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[APPLICATION_NAME\]/${{ env.APPLICATION_NAME }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[KUBERNETES_CLUSTER_CA_CERT\]/${{ env.KUBERNETES_CLUSTER_CA_CERT }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[VAULT_ADDRESS\]!${{ env.VAULT_ADDRESS }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[KUBERNETES_HOST\]!${{ env.KUBERNETES_HOST }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[DOMAIN\]!${{ env.DOMAIN }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[CERTIFICATE_ARN\]!${{ env.CERTIFICATE_ARN }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[WAF_ARN\]!${{ env.WAF_ARN }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's!\[ALB_ACCESS_LOG_BUCKET\]!${{ env.ALB_ACCESS_LOG_BUCKET }}!g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[AWS_ACCESS_KEY_ID\]/${{ secrets.TERRAFORM_QA_AWS_ACCESS_KEY_ID }}/g' '{}' \;
-        find ./ -type f -exec sed -i 's/\[AWS_ACCESS_SECRET_KEY\]/${{ secrets.TERRAFORM_QA_AWS_ACCESS_SECRET_KEY }}/g' '{}' \;
+
         find ./ -type f -exec sed -i 's!\[COLLECTSTATIC_RUN\]!${{ env.COLLECTSTATIC_RUN }}!g' '{}' \;
         find ./ -type f -exec sed -i 's!\[MIGRATION_RUN\]!${{ env.MIGRATION_RUN }}!g' '{}' \; 
          
