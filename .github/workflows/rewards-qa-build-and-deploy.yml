@@ -175,7 +175,7 @@ jobs:
      - name: Search and replace values
        run: |
         mkdir -p build/${{ env.APP_NAME }}
-        cp ../deployment/values/${{ env.APP_NAME }}/qa/terraform/* build/${{ env.APP_NAME }}
+        cp deployment/values/${{ env.APP_NAME }}/qa/terraform/* build/${{ env.APP_NAME }}
         
 
         find ./ -type f -exec sed -i 's!\[COLLECTSTATIC_RUN\]!${{ env.COLLECTSTATIC_RUN }}!g' '{}' \;
